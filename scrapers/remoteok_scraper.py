@@ -15,7 +15,7 @@ def fetch_jobs() -> list[dict]:
     response.raise_for_status()
     return response.json()
 
-def save_jobs_to_html(jobs,filename = "data/raw/jobs.html"):
+def save_jobs_to_html(jobs,filename = "data/raw/jobs_remoteok.html"):
     with open(filename,"w",encoding="utf-8") as f:
         f.write("<html><head><title>Jobs</title></head><body>")
         f.write("<h1>Remote Jobs</h1>")
@@ -39,5 +39,5 @@ def save_jobs_to_html(jobs,filename = "data/raw/jobs.html"):
 
 if __name__ == "__main__":
     jobs = fetch_jobs()
-    # save_jobs_to_html(jobs)
+    save_jobs_to_html(jobs)
     print(jobs[1])
