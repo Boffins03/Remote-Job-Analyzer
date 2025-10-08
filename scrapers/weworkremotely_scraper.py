@@ -26,3 +26,4 @@ def save_html(content: str, filename="data/raw/jobs_weworkremotely.html"):
 if __name__ == "__main__":
     jobs = fetch_jobs()
     save_html(jobs)
+    print("Fetched and saved jobs from WeWorkRemotely")

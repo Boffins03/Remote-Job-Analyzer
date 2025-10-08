@@ -40,4 +40,4 @@ def save_jobs_to_html(jobs,filename = "data/raw/jobs_remoteok.html"):
 if __name__ == "__main__":
     jobs = fetch_jobs()
     save_jobs_to_html(jobs)
-    print(jobs[1])
+    print("Fetched and saved jobs from RemoteOK")
