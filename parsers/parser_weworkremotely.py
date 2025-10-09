@@ -21,7 +21,7 @@ def parse_jobs_from_html(filename=None):
             title_tag = job.find("div", class_="new-listing__header")
             company_tag = job.find("p", class_="new-listing__company-name")
             location_tag = job.find("p", class_="new-listing__company-headquarters")
-            categories_tag = job.find("p", class_="new-listing__categories")
+            categories_tag = job.find("div", class_="new-listing__categories")
             link_tag = job.find("a", recursive=False)
 
             # Extract text safely
