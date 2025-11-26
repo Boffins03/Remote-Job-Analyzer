@@ -27,7 +27,7 @@ def clean_remoteok(df):
         regex=True
     ).str.strip()
 
-    df["location"] = df["location"].replace("nan", "Remote")
+    df["location"] = df["location"].fillna("Remote")
 
     # Extract salary min/max
     df["salary_min"] = df["salary"].str.extract(r"(\d[\d,]*)\s*[-–]").astype(float)
@@ -117,7 +117,7 @@ def clean_remotely(df):
 
     df["salary"] = df["salary_cleaned"]
     df["location"] = df["location_cleaned"]
-
+    df["location"] = df["location"].replace("nan", "Remote")
     df = df.drop(columns=["salary_cleaned", "location_cleaned"])
 
     df = df[["title", "company", "location", "salary", "apply_link"]]
@@ -146,8 +146,11 @@ def main():
     print("Removing duplicates...")
     jobs = jobs.drop_duplicates(subset=["title", "company"], keep="first").reset_index(drop=True)
 
+    print("Filling missing locations with 'Remote'...")
+    jobs["location"] = jobs["location"].fillna("Remote")
+
     print("Saving jobs_clean.csv...")
-    jobs.to_csv("jobs_clean.csv", index=False)
+    jobs.to_csv("data/processed/jobs_clean.csv", index=False)
 
     print("✔ Done! jobs_clean.csv generated.")
 
