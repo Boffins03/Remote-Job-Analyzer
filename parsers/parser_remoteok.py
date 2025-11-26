@@ -38,4 +38,4 @@ def save_jobs_to_csv(jobs, filename="data/processed/jobs_remoteok.csv"):
 if __name__ == "__main__":
     jobs = parse_jobs_from_html()
     save_jobs_to_csv(jobs)
-    print(f"Saved {len(jobs)} jobs to ../data/processed/jobs_remoteok.csv")
+    print(f"Saved {len(jobs)} jobs to jobs_remoteok.csv")

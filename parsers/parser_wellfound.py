@@ -4,7 +4,7 @@ import csv
 
 def parse_jobs_from_html(filename=None):
     if filename is None:
-        filename = os.path.join("..", "data", "raw", "jobs_wellfound.html")
+        filename = os.path.join("data", "raw", "jobs_wellfound.html")
 
     with open(filename, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")

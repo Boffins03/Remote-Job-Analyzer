@@ -16,14 +16,14 @@ def fetch_jobs() -> list[dict]:
     response.raise_for_status()
     return response.text
 
-def save_html(content: str, filename="data/raw/jobs_weworkremotely.html"):
+def save_jobs_to_html(content: str, filename="data/raw/jobs_weworkremotely.html"):
     """Save the HTML content to a local file."""
     # os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"HTML saved to {filename}")
+    print(f"Jobs saved to {filename}")
 
 if __name__ == "__main__":
     jobs = fetch_jobs()
-    save_html(jobs)
+    save_jobs_to_html(jobs)
     print("Fetched and saved jobs from WeWorkRemotely")

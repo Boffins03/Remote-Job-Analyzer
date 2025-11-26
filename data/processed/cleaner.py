@@ -104,7 +104,7 @@ def clean_remotely(df):
     df["salary_cleaned"] = df["salary"].apply(clean_salary).astype("Int64")
 
     mean_salary = int(df["salary_cleaned"].mean())
-    df["salary_cleaned"].fillna(mean_salary, inplace=True)
+    df["salary_cleaned"] = df["salary_cleaned"].fillna(mean_salary)
 
     # Parse location
     df["location"] = df["categories"].apply(extract_location_list_remotely)
@@ -120,7 +120,7 @@ def clean_remotely(df):
 
     df = df.drop(columns=["salary_cleaned", "location_cleaned"])
 
-    df = df[["title", "company", "location", "salary, apply_link"]]
+    df = df[["title", "company", "location", "salary", "apply_link"]]
     df["source"] = "remotely"
 
     return df
@@ -131,8 +131,8 @@ def clean_remotely(df):
 
 def main():
     print("Loading CSV files...")
-    remoteok = pd.read_csv("jobs_remoteok.csv")
-    remotely = pd.read_csv("jobs_weworkremotely.csv")
+    remoteok = pd.read_csv("data/processed/jobs_remoteok.csv")
+    remotely = pd.read_csv("data/processed/jobs_weworkremotely.csv")
 
     print("Cleaning RemoteOK...")
     remoteok_clean = clean_remoteok(remoteok)
