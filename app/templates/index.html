@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Dashboard Overview</h2>
+  <p>Real-time insights into the job market</p>
+</div>
+
+<!-- Quick Stats with Filter Toggle -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <i class="fas fa-briefcase text-primary"></i>
+      <h6>Total Jobs</h6>
+      <h2 id="total_jobs"><span class="loading"></span></h2>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <i class="fas fa-building text-info"></i>
+      <h6>Total Companies</h6>
+      <h2 id="total_companies"><span class="loading"></span></h2>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <i class="fas fa-code text-success"></i>
+      <h6>Top Skill</h6>
+      <h2 id="top_skill"><span class="loading"></span></h2>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card stat-card">
+      <i class="fas fa-filter text-warning"></i>
+      <h6>Quick Filter</h6>
+      <select id="dashboardFilter" class="form-select form-select-sm mt-2">
+        <option value="">All Jobs</option>
+        <option value="remote">Remote Only</option>
+        <option value="high-salary">High Salary ($100k+)</option>
+        <option value="tech">Tech Companies</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Rest of your existing dashboard content remains the same -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Latest Job Opportunities</h5>
+        <div>
+          <span class="badge bg-primary me-2" id="job-count">Loading...</span>
+          <a href="/jobs" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-filter me-1"></i> Advanced Filters
+          </a>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Company</th>
+              <th>Location</th>
+              <th>Salary</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="latest_jobs">
+            <tr>
+              <td colspan="5" class="text-center py-4">
+                <div class="loading"></div> Loading jobs...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let dashboardJobs = [];
+
+// Fetch dashboard stats
+fetch("/api/stats/overview")
+  .then(res => {
+    if (!res.ok) throw new Error('Network response was not ok');
+    return res.json();
+  })
+  .then(data => {
+    document.getElementById("total_jobs").innerHTML = data.total_jobs.toLocaleString();
+    document.getElementById("total_companies").innerHTML = data.total_companies.toLocaleString();
+    document.getElementById("top_skill").innerHTML = data.top_skill || "N/A";
+  })
+  .catch(error => {
+    console.error('Error fetching stats:', error);
+    document.getElementById("total_jobs").innerHTML = "Error";
+    document.getElementById("total_companies").innerHTML = "Error";
+    document.getElementById("top_skill").innerHTML = "Error";
+  });
+
+// Fetch latest jobs
+fetch("/api/jobs")
+  .then(res => {
+    if (!res.ok) throw new Error('Network response was not ok');
+    return res.json();
+  })
+  .then(data => {
+    dashboardJobs = data.jobs;
+    renderDashboardJobs();
+    
+    // Setup filter listener
+    document.getElementById('dashboardFilter').addEventListener('change', function(e) {
+      renderDashboardJobs(e.target.value);
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching jobs:', error);
+    document.getElementById("latest_jobs").innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-4 text-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>Failed to load jobs
+        </td>
+      </tr>
+    `;
+  });
+
+function renderDashboardJobs(filter = '') {
+  const tbody = document.getElementById("latest_jobs");
+  const jobCount = document.getElementById("job-count");
+  
+  let filteredJobs = [...dashboardJobs];
+  
+  // Apply quick filters
+  switch(filter) {
+    case 'remote':
+      filteredJobs = filteredJobs.filter(job => 
+        job.location.toLowerCase().includes('remote') || 
+        job.location.toLowerCase().includes('anywhere')
+      );
+      break;
+    case 'high-salary':
+      filteredJobs = filteredJobs.filter(job => {
+        const salary = parseInt(job.salary) || 0;
+        return salary >= 100000;
+      });
+      break;
+    case 'tech':
+      const techCompanies = ['google', 'microsoft', 'apple', 'amazon', 'meta', 'netflix', 'twitter', 'uber'];
+      filteredJobs = filteredJobs.filter(job => 
+        techCompanies.some(tech => job.company.toLowerCase().includes(tech))
+      );
+      break;
+  }
+  
+  jobCount.textContent = `${filteredJobs.length} Jobs`;
+  
+  if (filteredJobs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-4 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2"></i><br>
+          No jobs match your filter
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  filteredJobs.slice(0, 10).forEach(job => {
+    const row = document.createElement('tr');
+    const formattedSalary = job.salary ? `$${parseInt(job.salary).toLocaleString()}` : 'Not specified';
+    
+    row.innerHTML = `
+      <td>
+        <div class="fw-semibold">${job.title}</div>
+        <small class="text-muted">${job.category || 'Development'}</small>
+      </td>
+      <td>${job.company}</td>
+      <td>${job.location}</td>
+      <td>
+        <span class="fw-semibold text-success">${formattedSalary}</span>
+      </td>
+      <td>
+        <a class="btn btn-primary btn-sm" href="${job.apply_link}" target="_blank">
+          <i class="fas fa-external-link-alt me-1"></i> Apply
+        </a>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function extractSalary(salaryText) {
+  if (!salaryText) return null;
+  const matches = salaryText.match(/\$?(\d{1,3}(?:,\d{3})*)/);
+  return matches ? parseInt(matches[1].replace(/,/g, '')) : null;
+}
+</script>
+
+{% endblock %}

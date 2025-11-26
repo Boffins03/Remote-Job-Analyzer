@@ -1,0 +1,28 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: #fafafa;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.job-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.job-card h3 {
+    margin-top: 0;
+}
+
+.job-card a {
+    color: blue;
+}

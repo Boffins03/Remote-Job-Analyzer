@@ -4,7 +4,7 @@ import csv
 
 def parse_jobs_from_html(filename=None):
     if filename is None:
-        filename = os.path.join("..", "data", "raw", "jobs_remoteok.html")
+        filename = os.path.join("data", "raw", "jobs_remoteok.html")
 
     with open(filename, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
@@ -27,7 +27,7 @@ def parse_jobs_from_html(filename=None):
     
     return jobs
 
-def save_jobs_to_csv(jobs, filename="../data/processed/jobs_remoteok.csv"):
+def save_jobs_to_csv(jobs, filename="data/processed/jobs_remoteok.csv"):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["title", "company", "location", "salary", "apply_link"])

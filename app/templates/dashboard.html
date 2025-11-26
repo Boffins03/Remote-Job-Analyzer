@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Remote Developer Job Market Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Remote Developer Job Market Dashboard</h1>
+
+    <section id="stats">
+        <h2>Market Stats</h2>
+        <div id="stats-container">Loading stats...</div>
+    </section>
+
+    <section id="jobs">
+        <h2>Latest Jobs</h2>
+        <div id="jobs-container">Loading jobs...</div>
+    </section>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

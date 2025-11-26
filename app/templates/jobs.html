@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Job Listings</h2>
+  <p>Browse all available positions</p>
+</div>
+
+<!-- Filter and Search Section -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Search Jobs</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-0"><i class="fas fa-search"></i></span>
+          <input type="text" id="searchInput" class="form-control border-0 bg-light" placeholder="Search by title, company, skills...">
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Company</label>
+        <select id="companyFilter" class="form-select">
+          <option value="">All Companies</option>
+        </select>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Location</label>
+        <select id="locationFilter" class="form-select">
+          <option value="">All Locations</option>
+        </select>
+      </div>
+      
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Salary Range</label>
+        <select id="salaryFilter" class="form-select">
+          <option value="">Any Salary</option>
+          <option value="0-50000">$0 - $50k</option>
+          <option value="50000-100000">$50k - $100k</option>
+          <option value="100000-150000">$100k - $150k</option>
+          <option value="150000-200000">$150k - $200k</option>
+          <option value="200000+">$200k+</option>
+        </select>
+      </div>
+      
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <button id="clearFilters" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-times me-1"></i> Clear Filters
+            </button>
+          </div>
+          <div class="text-muted small">
+            <span id="filtered-count">0</span> of <span id="total-count">0</span> jobs
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Jobs Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">All Job Opportunities</h5>
+    <span class="badge bg-primary" id="job-count">Loading...</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>
+            <a href="#" class="text-decoration-none sort-header" data-sort="title">
+              Title <i class="fas fa-sort ms-1"></i>
+            </a>
+          </th>
+          <th>
+            <a href="#" class="text-decoration-none sort-header" data-sort="company">
+              Company <i class="fas fa-sort ms-1"></i>
+            </a>
+          </th>
+          <th>
+            <a href="#" class="text-decoration-none sort-header" data-sort="location">
+              Location <i class="fas fa-sort ms-1"></i>
+            </a>
+          </th>
+          <th>
+            <a href="#" class="text-decoration-none sort-header" data-sort="salary">
+              Salary <i class="fas fa-sort ms-1"></i>
+            </a>
+          </th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="job_rows">
+        <tr>
+          <td colspan="5" class="text-center py-4">
+            <div class="loading"></div> Loading jobs...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- No Results Message -->
+  <div id="no-results" class="d-none">
+    <div class="text-center py-5 text-muted">
+      <i class="fas fa-search fa-3x mb-3"></i>
+      <h5>No jobs found</h5>
+      <p>Try adjusting your search or filters</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let allJobs = [];
+let filteredJobs = [];
+let currentSort = { field: 'title', direction: 'asc' };
+
+// Fetch all jobs
+fetch("/api/jobs")
+  .then(res => {
+    if (!res.ok) throw new Error('Network response was not ok');
+    return res.json();
+  })
+  .then(data => {
+    allJobs = data.jobs;
+    filteredJobs = [...allJobs];
+    
+    updateJobCount();
+    renderJobs();
+    populateFilters();
+    setupEventListeners();
+  })
+  .catch(error => {
+    console.error('Error fetching jobs:', error);
+    document.getElementById("job_rows").innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-4 text-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>Failed to load jobs
+        </td>
+      </tr>
+    `;
+  });
+
+function populateFilters() {
+  const companies = [...new Set(allJobs.map(job => job.company))].sort();
+  const locations = [...new Set(allJobs.map(job => job.location))].sort();
+  
+  const companySelect = document.getElementById('companyFilter');
+  const locationSelect = document.getElementById('locationFilter');
+  
+  companies.forEach(company => {
+    const option = document.createElement('option');
+    option.value = company;
+    option.textContent = company;
+    companySelect.appendChild(option);
+  });
+  
+  locations.forEach(location => {
+    const option = document.createElement('option');
+    option.value = location;
+    option.textContent = location;
+    locationSelect.appendChild(option);
+  });
+}
+
+function setupEventListeners() {
+  // Search input
+  document.getElementById('searchInput').addEventListener('input', applyFilters);
+  
+  // Filter dropdowns
+  document.getElementById('companyFilter').addEventListener('change', applyFilters);
+  document.getElementById('locationFilter').addEventListener('change', applyFilters);
+  document.getElementById('salaryFilter').addEventListener('change', applyFilters);
+  
+  // Clear filters
+  document.getElementById('clearFilters').addEventListener('click', clearFilters);
+  
+  // Sort headers
+  document.querySelectorAll('.sort-header').forEach(header => {
+    header.addEventListener('click', (e) => {
+      e.preventDefault();
+      const field = e.currentTarget.dataset.sort;
+      sortJobs(field);
+    });
+  });
+}
+
+function applyFilters() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const companyFilter = document.getElementById('companyFilter').value;
+  const locationFilter = document.getElementById('locationFilter').value;
+  const salaryFilter = document.getElementById('salaryFilter').value;
+  
+  filteredJobs = allJobs.filter(job => {
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      job.title.toLowerCase().includes(searchTerm) ||
+      job.company.toLowerCase().includes(searchTerm) ||
+      job.location.toLowerCase().includes(searchTerm) ||
+      (job.skills && job.skills.toLowerCase().includes(searchTerm));
+    
+    // Company filter
+    const matchesCompany = !companyFilter || job.company === companyFilter;
+    
+    // Location filter
+    const matchesLocation = !locationFilter || job.location === locationFilter;
+    
+    // Salary filter - simplified for integer values
+    let matchesSalary = true;
+    if (salaryFilter && job.salary) {
+      const salary = parseInt(job.salary);
+      
+      switch(salaryFilter) {
+        case '0-50000': 
+          matchesSalary = salary >= 0 && salary <= 50000; 
+          break;
+        case '50000-100000': 
+          matchesSalary = salary > 50000 && salary <= 100000; 
+          break;
+        case '100000-150000': 
+          matchesSalary = salary > 100000 && salary <= 150000; 
+          break;
+        case '150000-200000': 
+          matchesSalary = salary > 150000 && salary <= 200000; 
+          break;
+        case '200000+': 
+          matchesSalary = salary > 200000; 
+          break;
+      }
+    }
+    
+    return matchesSearch && matchesCompany && matchesLocation && matchesSalary;
+  });
+  
+  sortJobs(currentSort.field);
+  updateJobCount();
+  renderJobs();
+}
+
+function sortJobs(field) {
+  if (currentSort.field === field) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.field = field;
+    currentSort.direction = 'asc';
+  }
+  
+  filteredJobs.sort((a, b) => {
+    let aValue = a[field];
+    let bValue = b[field];
+    
+    // Handle different data types for sorting
+    if (field === 'salary') {
+      aValue = parseInt(aValue) || 0;
+      bValue = parseInt(bValue) || 0;
+    }
+    
+    if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+    
+    if (aValue < bValue) return currentSort.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return currentSort.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+  
+  updateSortIcons();
+  renderJobs();
+}
+
+function updateSortIcons() {
+  document.querySelectorAll('.sort-header').forEach(header => {
+    const icon = header.querySelector('i');
+    if (header.dataset.sort === currentSort.field) {
+      icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up ms-1' : 'fas fa-sort-down ms-1';
+    } else {
+      icon.className = 'fas fa-sort ms-1';
+    }
+  });
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('companyFilter').value = '';
+  document.getElementById('locationFilter').value = '';
+  document.getElementById('salaryFilter').value = '';
+  
+  applyFilters();
+}
+
+function updateJobCount() {
+  const totalCount = document.getElementById('total-count');
+  const filteredCount = document.getElementById('filtered-count');
+  const jobCount = document.getElementById('job-count');
+  
+  totalCount.textContent = allJobs.length;
+  filteredCount.textContent = filteredJobs.length;
+  jobCount.textContent = `${filteredJobs.length} Jobs`;
+}
+
+function renderJobs() {
+  const tbody = document.getElementById('job_rows');
+  const noResults = document.getElementById('no-results');
+  
+  if (filteredJobs.length === 0) {
+    tbody.classList.add('d-none');
+    noResults.classList.remove('d-none');
+    return;
+  }
+  
+  tbody.classList.remove('d-none');
+  noResults.classList.add('d-none');
+  
+  tbody.innerHTML = '';
+  filteredJobs.forEach(job => {
+    const row = document.createElement('tr');
+    
+    // Format salary for display
+    const formattedSalary = job.salary ? `$${parseInt(job.salary).toLocaleString()}` : 'Not specified';
+    
+    row.innerHTML = `
+      <td>
+        <div class="fw-semibold">${job.title}</div>
+        <small class="text-muted">${job.category || 'Development'}</small>
+      </td>
+      <td>
+        <div class="d-flex align-items-center">
+          <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+            <i class="fas fa-building text-muted"></i>
+          </div>
+          <span>${job.company}</span>
+        </div>
+      </td>
+      <td>
+        <div class="d-flex align-items-center">
+          <i class="fas fa-map-marker-alt text-muted me-2"></i>
+          <span>${job.location}</span>
+        </div>
+      </td>
+      <td>
+        <span class="fw-semibold text-success">${formattedSalary}</span>
+      </td>
+      <td>
+        <a href="${job.apply_link}" target="_blank" class="btn btn-primary btn-sm">
+          <i class="fas fa-external-link-alt me-1"></i> Apply
+        </a>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+</script>
+
+{% endblock %}

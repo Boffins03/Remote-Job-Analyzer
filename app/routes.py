@@ -1,7 +1,15 @@
-import requests
-from bs4 import BeautifulSoup
+from flask import Blueprint, render_template
 
-def get_weather_html(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text
+routes = Blueprint("routes", __name__)
+
+@routes.route("/")
+def index():
+    return render_template("index.html", title="Dashboard")
+
+@routes.route("/charts")
+def charts():
+    return render_template("charts.html", title="Charts")
+
+@routes.route("/jobs")
+def jobs():
+    return render_template("jobs.html", title="Jobs")

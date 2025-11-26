@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .dashboard-wrapper {
+    display: grid;
+    gap: 2rem;
+    padding: 1rem 0;
+  }
+
+  .chart-card {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    border: none;
+  }
+
+  .chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  .chart-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+  }
+
+  .chart-title i {
+    margin-right: 10px;
+    font-size: 1.1rem;
+  }
+
+  .overview-box {
+    display: flex;
+    gap: 2rem;
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    justify-content: space-around;
+    text-align: center;
+  }
+
+  .overview-item {
+    flex: 1;
+  }
+
+  .overview-item strong {
+    display: block;
+    color: var(--secondary);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .overview-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  @media (min-width: 992px) {
+    .dashboard-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .overview-box {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+  }
+</style>
+
+<div class="page-header">
+  <h2>Analytics Dashboard</h2>
+  <p>Visual insights into job market trends</p>
+</div>
+
+<div class="dashboard-wrapper">
+
+  <div class="overview-box" id="overview">
+    <div class="overview-item">
+      <strong>Total Jobs</strong>
+      <div class="overview-value" id="total-jobs">...</div>
+    </div>
+    <div class="overview-item">
+      <strong>Total Companies</strong>
+      <div class="overview-value" id="total-companies">...</div>
+    </div>
+    <div class="overview-item">
+      <strong>Avg. Salary</strong>
+      <div class="overview-value" id="avg-salary">...</div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-chart-line text-primary"></i> Job Trends</div>
+      <canvas id="jobTrendsChart" height="250"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-briefcase text-info"></i> Top Job Titles</div>
+      <canvas id="topTitlesChart" height="250"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title"><i class="fas fa-money-bill-wave text-success"></i> Salary Distribution</div>
+    <canvas id="salaryChart" height="250"></canvas>
+  </div>
+
+  <div class="dashboard-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-map-marker-alt text-warning"></i> Top Locations</div>
+      <canvas id="locationsChart" height="250"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-code text-danger"></i> Top Skills</div>
+      <canvas id="skillsChart" height="250"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Color palette for charts
+const chartColors = {
+  primary: '#4361ee',
+  secondary: '#6c757d',
+  success: '#4cc9a7',
+  info: '#4895ef',
+  warning: '#f7b801',
+  danger: '#f72585',
+  light: '#f8f9fa',
+  dark: '#1e1e2f'
+};
+
+// Overview stats
+fetch("/api/stats/overview")
+  .then(r => {
+    if (!r.ok) throw new Error('Network response was not ok');
+    return r.json();
+  })
+  .then(data => {
+    document.getElementById("total-jobs").textContent = data.total_jobs?.toLocaleString() || 'N/A';
+    document.getElementById("total-companies").textContent = data.total_companies?.toLocaleString() || 'N/A';
+    document.getElementById("avg-salary").textContent = data.avg_salary ? `$${data.avg_salary.toLocaleString()}` : 'N/A';
+  })
+  .catch(error => {
+    console.error('Error fetching overview:', error);
+    document.getElementById("total-jobs").textContent = 'Error';
+    document.getElementById("total-companies").textContent = 'Error';
+    document.getElementById("avg-salary").textContent = 'Error';
+  });
+
+// Job trends chart
+fetch("/api/stats/job-trends")
+  .then(r => {
+    if (!r.ok) throw new Error('Network response was not ok');
+    return r.json();
+  })
+  .then(data => {
+    const labels = data.map(i => `${i.month}/${i.year}`);
+    const values = data.map(i => i.total_jobs);
+
+    new Chart(document.getElementById("jobTrendsChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Jobs Posted",
+          data: values,
+          borderWidth: 3,
+          borderColor: chartColors.primary,
+          backgroundColor: 'rgba(67, 97, 238, 0.1)',
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching job trends:', error);
+    document.getElementById("jobTrendsChart").parentElement.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+        <p>Failed to load job trends data</p>
+      </div>
+    `;
+  });
+
+// Top titles chart
+fetch("/api/stats/top-titles")
+  .then(r => {
+    if (!r.ok) throw new Error('Network response was not ok');
+    return r.json();
+  })
+  .then(data => {
+    const labels = data.map(i => i.title);
+    const values = data.map(i => i.count);
+
+    new Chart(document.getElementById("topTitlesChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Job Count",
+          data: values,
+          borderWidth: 1,
+          backgroundColor: chartColors.info,
+          borderColor: chartColors.info
+        }]
+      },
+      options: {
+        plugins: { 
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching top titles:', error);
+    document.getElementById("topTitlesChart").parentElement.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+        <p>Failed to load top titles data</p>
+      </div>
+    `;
+  });
+
+// Salary chart
+fetch("/api/stats/salary")
+  .then(r => {
+    if (!r.ok) throw new Error('Network response was not ok');
+    return r.json();
+  })
+  .then(data => {
+    const labels = data.map(i => i.company);
+    const values = data.map(i => i.avg_salary);
+
+    new Chart(document.getElementById("salaryChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Average Salary",
+          data: values,
+          borderWidth: 1,
+          backgroundColor: chartColors.success,
+          borderColor: chartColors.success
+        }]
+      },
+      options: {
+        plugins: { 
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching salary data:', error);
+    document.getElementById("salaryChart").parentElement.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+        <p>Failed to load salary data</p>
+      </div>
+    `;
+  });
+
+// Additional charts for locations and skills (if available)
+// These would require additional API endpoints
+</script>
+
+{% endblock %}

@@ -18,6 +18,14 @@ def parse_jobs_from_html(filename=None):
             if not job.find("a"):
                 continue
 
+            # Safely get span text
+            span_tag = job.find("span")
+            span_text = span_tag.get_text(strip=True) if span_tag else ""
+            
+            # Skip sponsored jobs
+            if span_text.lower() == "sponsored":
+                continue
+
             title_tag = job.find("div", class_="new-listing__header")
             company_tag = job.find("p", class_="new-listing__company-name")
             location_tag = job.find("p", class_="new-listing__company-headquarters")
@@ -34,7 +42,7 @@ def parse_jobs_from_html(filename=None):
             jobs.append({
                 "title": title,
                 "company": company,
-                "location": location,
+                "company_location": location,
                 "categories": categories,
                 "apply_link": apply_link
             })
@@ -44,7 +52,7 @@ def parse_jobs_from_html(filename=None):
 def save_jobs_to_csv(jobs, filename="../data/processed/jobs_weworkremotely.csv"):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["title", "company", "location", "categories", "apply_link"])
+        writer = csv.DictWriter(f, fieldnames=["title", "company", "company_location", "categories", "apply_link"])
         writer.writeheader()
         writer.writerows(jobs)
 
